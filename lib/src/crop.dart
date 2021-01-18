@@ -3,10 +3,14 @@ part of image_crop;
 const _kCropGridColumnCount = 3;
 const _kCropGridRowCount = 3;
 const _kCropGridColor = Color.fromRGBO(0xd0, 0xd0, 0xd0, 0.9);
-const _kCropOverlayActiveOpacity = 0.3;
-const _kCropOverlayInactiveOpacity = 0.7;
-const _kCropHandleColor = Color.fromRGBO(0xd0, 0xd0, 0xd0, 1.0);
-const _kCropHandleSize = 10.0;
+const _kCropOverlayActiveOpacity = 0.5;
+const _kCropOverlayInactiveOpacity = 0.0;
+const _kCropHandleColor = const Color(0xff55d6bc);
+const _kCropHandleSize = 4.0;
+const _kCropHandleHalfSize = _kCropHandleSize / 2.0;
+
+const _kCropHandleLength = 24.0;
+
 const _kCropHandleHitSize = 48.0;
 const _kCropMinFraction = 0.1;
 
@@ -20,9 +24,12 @@ class Crop extends StatefulWidget {
   final bool alwaysShowGrid;
   final ImageErrorListener onImageError;
 
+  final String hintText;
+
   const Crop({
     Key key,
     this.image,
+    this.hintText,
     this.aspectRatio,
     this.maximumScale = 2.0,
     this.alwaysShowGrid = false,
@@ -36,6 +43,7 @@ class Crop extends StatefulWidget {
     File file, {
     Key key,
     double scale = 1.0,
+    this.hintText,
     this.aspectRatio,
     this.maximumScale = 2.0,
     this.alwaysShowGrid = false,
@@ -50,6 +58,7 @@ class Crop extends StatefulWidget {
     Key key,
     AssetBundle bundle,
     String package,
+    this.hintText,
     this.aspectRatio,
     this.maximumScale = 2.0,
     this.alwaysShowGrid = false,
@@ -87,6 +96,8 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
   ImageStreamListener _imageListener;
 
   double get scale => _area.shortestSide / _scale;
+
+  bool _dragging = false;
 
   Rect get area {
     return _view.isEmpty
@@ -353,7 +364,9 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
   }
 
   void _handleScaleStart(ScaleStartDetails details) {
+    _dragging = true;
     _activate();
+
     _settleController.stop(canceled: false);
     _lastFocalPoint = details.focalPoint;
     _action = _CropAction.none;
@@ -391,8 +404,8 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
   }
 
   void _handleScaleEnd(ScaleEndDetails details) {
+    _dragging = false;
     _deactivate();
-
     final targetScale = _scale.clamp(_minimumScale, _maximumScale);
     _scaleTween = Tween<double>(
       begin: _scale,
@@ -560,6 +573,7 @@ class _CropPainter extends CustomPainter {
   final Rect area;
   final double scale;
   final double active;
+  final String hintText;
 
   _CropPainter({
     this.image,
@@ -568,6 +582,7 @@ class _CropPainter extends CustomPainter {
     this.area,
     this.scale,
     this.active,
+    this.hintText,
   });
 
   @override
@@ -583,8 +598,8 @@ class _CropPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(
-      _kCropHandleSize / 2,
-      _kCropHandleSize / 2,
+      _kCropHandleHalfSize,
+      _kCropHandleHalfSize,
       size.width - _kCropHandleSize,
       size.height - _kCropHandleSize,
     );
@@ -614,81 +629,100 @@ class _CropPainter extends CustomPainter {
       canvas.restore();
     }
 
-    paint.color = Color.fromRGBO(
-        0x0,
-        0x0,
-        0x0,
-        _kCropOverlayActiveOpacity * active +
-            _kCropOverlayInactiveOpacity * (1.0 - active));
     final boundaries = Rect.fromLTWH(
       rect.width * area.left,
       rect.height * area.top,
       rect.width * area.width,
       rect.height * area.height,
     );
-    canvas.drawRect(Rect.fromLTRB(0.0, 0.0, rect.width, boundaries.top), paint);
-    canvas.drawRect(
-        Rect.fromLTRB(0.0, boundaries.bottom, rect.width, rect.height), paint);
-    canvas.drawRect(
-        Rect.fromLTRB(0.0, boundaries.top, boundaries.left, boundaries.bottom),
-        paint);
-    canvas.drawRect(
-        Rect.fromLTRB(
-            boundaries.right, boundaries.top, rect.width, boundaries.bottom),
-        paint);
 
     if (!boundaries.isEmpty) {
+      _drawMask(canvas, boundaries);
       _drawGrid(canvas, boundaries);
+      _drawCircle(canvas, boundaries, rect);
       _drawHandles(canvas, boundaries);
+      _drawText(canvas, boundaries, size);
     }
 
     canvas.restore();
   }
 
+  void _drawMask(Canvas canvas, Rect boundaries) {
+    final paint = Paint()
+      ..color = Color.fromRGBO(
+          0xff,
+          0xff,
+          0xff,
+          _kCropOverlayActiveOpacity * active +
+              _kCropOverlayInactiveOpacity * (1.0 - active));
+    canvas.drawRect(boundaries, paint);
+  }
+
   void _drawHandles(Canvas canvas, Rect boundaries) {
     final paint = Paint()
-      ..isAntiAlias = true
+      ..isAntiAlias = false
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _kCropHandleSize
       ..color = _kCropHandleColor;
 
-    canvas.drawOval(
-      Rect.fromLTWH(
-        boundaries.left - _kCropHandleSize / 2,
-        boundaries.top - _kCropHandleSize / 2,
-        _kCropHandleSize,
-        _kCropHandleSize,
-      ),
-      paint,
-    );
+    final path = Path()
+      ..moveTo(boundaries.left - _kCropHandleHalfSize, boundaries.top)
+      ..lineTo(boundaries.left + _kCropHandleLength, boundaries.top)
+      ..moveTo(boundaries.left, boundaries.top)
+      ..lineTo(boundaries.left, boundaries.top + _kCropHandleLength)
+      ..moveTo(boundaries.right + _kCropHandleHalfSize, boundaries.top)
+      ..lineTo(boundaries.right - _kCropHandleLength, boundaries.top)
+      ..moveTo(boundaries.right, boundaries.top)
+      ..lineTo(boundaries.right, boundaries.top + _kCropHandleLength)
+      ..moveTo(boundaries.right + _kCropHandleHalfSize, boundaries.bottom)
+      ..lineTo(boundaries.right - _kCropHandleLength, boundaries.bottom)
+      ..moveTo(boundaries.right, boundaries.bottom)
+      ..lineTo(boundaries.right, boundaries.bottom - _kCropHandleLength)
+      ..moveTo(boundaries.left - _kCropHandleHalfSize, boundaries.bottom)
+      ..lineTo(boundaries.left + _kCropHandleLength, boundaries.bottom)
+      ..moveTo(boundaries.left, boundaries.bottom)
+      ..lineTo(boundaries.left, boundaries.bottom - _kCropHandleLength);
 
-    canvas.drawOval(
-      Rect.fromLTWH(
-        boundaries.right - _kCropHandleSize / 2,
-        boundaries.top - _kCropHandleSize / 2,
-        _kCropHandleSize,
-        _kCropHandleSize,
-      ),
-      paint,
-    );
+    canvas.drawPath(path, paint);
+  }
 
-    canvas.drawOval(
-      Rect.fromLTWH(
-        boundaries.right - _kCropHandleSize / 2,
-        boundaries.bottom - _kCropHandleSize / 2,
-        _kCropHandleSize,
-        _kCropHandleSize,
-      ),
-      paint,
-    );
+  void _drawCircle(Canvas canvas, Rect boundaries, Rect rect) {
+    if (active != 0.0) return;
 
-    canvas.drawOval(
-      Rect.fromLTWH(
-        boundaries.left - _kCropHandleSize / 2,
-        boundaries.bottom - _kCropHandleSize / 2,
-        _kCropHandleSize,
-        _kCropHandleSize,
-      ),
+    final paint = Paint()
+      ..isAntiAlias = false
+      ..color = const Color(0x38000000)
+      ..style = PaintingStyle.fill
+      ..blendMode = BlendMode.darken;
+
+    canvas.drawRect(Rect.fromLTRB(0.0, 0.0, rect.width, rect.height), paint);
+
+    paint
+      ..color = const Color(0xffffffff)
+      ..blendMode = BlendMode.overlay;
+    canvas.drawCircle(
+      boundaries.center,
+      min(boundaries.width, boundaries.height) / 2.5,
       paint,
     );
+  }
+
+  void _drawText(Canvas canvas, Rect boundaries, Size size) {
+    if (active != 0.0) return;
+    final span = TextSpan(
+      text:
+          '${hintText ?? 'Daily update, Journey'}\nW:${boundaries.width.floor()} X H:${boundaries.height.floor()}',
+      style: TextStyle(
+        color: const Color(0xffffffff),
+        fontSize: 16,
+      ),
+    );
+    final painter = TextPainter(
+      text: span,
+      textDirection: TextDirection.ltr,
+    )..layout(minWidth: 0, maxWidth: size.width);
+    final offset = Offset(boundaries.left, boundaries.bottom + 10.0);
+    painter.paint(canvas, offset);
   }
 
   void _drawGrid(Canvas canvas, Rect boundaries) {
