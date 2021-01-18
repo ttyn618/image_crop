@@ -163,12 +163,10 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
         imageHeight: _image?.height,
       );
     }
-    if (widget.alwaysShowGrid != oldWidget.alwaysShowGrid) {
-      if (widget.alwaysShowGrid) {
-        _activate();
-      } else {
-        _deactivate();
-      }
+    if (_dragging) {
+      _activate();
+    } else {
+      _deactivate();
     }
   }
 
@@ -220,7 +218,7 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
   }
 
   void _deactivate() {
-    if (!widget.alwaysShowGrid) {
+    if (!_dragging) {
       _activeController.animateTo(
         0.0,
         curve: Curves.fastOutSlowIn,

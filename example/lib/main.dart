@@ -58,7 +58,11 @@ class _MyAppState extends State<MyApp> {
     return Column(
       children: <Widget>[
         Expanded(
-          child: Crop.file(_sample, key: cropKey),
+          child: Crop.file(
+            _sample,
+            key: cropKey,
+            alwaysShowGrid: true,
+          ),
         ),
         Container(
           padding: const EdgeInsets.only(top: 20.0),
