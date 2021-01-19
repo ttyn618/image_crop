@@ -12,6 +12,8 @@ const _kCropHandleHalfSize = _kCropHandleSize / 2.0;
 const _kCropHandleLength = 24.0;
 
 const _kCropHandleHitSize = 48.0;
+const _kCropHandleHitHalfSize = _kCropHandleHitSize / 2.0;
+
 const _kCropMinFraction = 0.1;
 
 enum _CropAction { none, moving, cropping, scaling }
@@ -25,14 +27,18 @@ class Crop extends StatefulWidget {
   final ImageErrorListener onImageError;
 
   final String hintText;
+  final Color cropHandleColor;
+  final double cropHandleLength;
 
   const Crop({
     Key key,
     this.image,
     this.hintText,
     this.aspectRatio,
+    this.cropHandleColor,
+    this.cropHandleLength,
     this.maximumScale = 2.0,
-    this.alwaysShowGrid = false,
+    @deprecated this.alwaysShowGrid = false,
     this.onImageError,
   })  : assert(image != null),
         assert(maximumScale != null),
@@ -45,8 +51,10 @@ class Crop extends StatefulWidget {
     double scale = 1.0,
     this.hintText,
     this.aspectRatio,
+    this.cropHandleColor,
+    this.cropHandleLength,
     this.maximumScale = 2.0,
-    this.alwaysShowGrid = false,
+    @deprecated this.alwaysShowGrid = false,
     this.onImageError,
   })  : image = FileImage(file, scale: scale),
         assert(maximumScale != null),
@@ -60,8 +68,10 @@ class Crop extends StatefulWidget {
     String package,
     this.hintText,
     this.aspectRatio,
+    this.cropHandleColor,
+    this.cropHandleLength,
     this.maximumScale = 2.0,
-    this.alwaysShowGrid = false,
+    @deprecated this.alwaysShowGrid = false,
     this.onImageError,
   })  : image = AssetImage(assetName, bundle: bundle, package: package),
         assert(maximumScale != null),
@@ -202,6 +212,9 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
               area: _area,
               scale: _scale,
               active: _activeController.value,
+              hintText: widget.hintText,
+              cropHandleColor: widget.cropHandleColor,
+              cropHandleLength: widget.cropHandleLength,
             ),
           ),
         ),
@@ -213,7 +226,7 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
     _activeController.animateTo(
       1.0,
       curve: Curves.fastOutSlowIn,
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 100),
     );
   }
 
@@ -222,7 +235,7 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
       _activeController.animateTo(
         0.0,
         curve: Curves.fastOutSlowIn,
-        duration: const Duration(milliseconds: 250),
+        duration: const Duration(milliseconds: 100),
       );
     }
   }
@@ -320,11 +333,11 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
       boundaries.height * _area.top,
       boundaries.width * _area.width,
       boundaries.height * _area.height,
-    ).deflate(_kCropHandleSize / 2);
+    ).deflate(_kCropHandleHalfSize);
 
     if (Rect.fromLTWH(
-      viewRect.left - _kCropHandleHitSize / 2,
-      viewRect.top - _kCropHandleHitSize / 2,
+      viewRect.left - _kCropHandleHitHalfSize,
+      viewRect.top - _kCropHandleHitHalfSize,
       _kCropHandleHitSize,
       _kCropHandleHitSize,
     ).contains(localPoint)) {
@@ -332,8 +345,8 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
     }
 
     if (Rect.fromLTWH(
-      viewRect.right - _kCropHandleHitSize / 2,
-      viewRect.top - _kCropHandleHitSize / 2,
+      viewRect.right - _kCropHandleHitHalfSize,
+      viewRect.top - _kCropHandleHitHalfSize,
       _kCropHandleHitSize,
       _kCropHandleHitSize,
     ).contains(localPoint)) {
@@ -341,8 +354,8 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
     }
 
     if (Rect.fromLTWH(
-      viewRect.left - _kCropHandleHitSize / 2,
-      viewRect.bottom - _kCropHandleHitSize / 2,
+      viewRect.left - _kCropHandleHitHalfSize,
+      viewRect.bottom - _kCropHandleHitHalfSize,
       _kCropHandleHitSize,
       _kCropHandleHitSize,
     ).contains(localPoint)) {
@@ -350,8 +363,8 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
     }
 
     if (Rect.fromLTWH(
-      viewRect.right - _kCropHandleHitSize / 2,
-      viewRect.bottom - _kCropHandleHitSize / 2,
+      viewRect.right - _kCropHandleHitHalfSize,
+      viewRect.bottom - _kCropHandleHitHalfSize,
       _kCropHandleHitSize,
       _kCropHandleHitSize,
     ).contains(localPoint)) {
@@ -572,6 +585,8 @@ class _CropPainter extends CustomPainter {
   final double scale;
   final double active;
   final String hintText;
+  final Color cropHandleColor;
+  final double cropHandleLength;
 
   _CropPainter({
     this.image,
@@ -581,6 +596,8 @@ class _CropPainter extends CustomPainter {
     this.scale,
     this.active,
     this.hintText,
+    this.cropHandleColor,
+    this.cropHandleLength,
   });
 
   @override
@@ -661,25 +678,27 @@ class _CropPainter extends CustomPainter {
       ..isAntiAlias = false
       ..style = PaintingStyle.stroke
       ..strokeWidth = _kCropHandleSize
-      ..color = _kCropHandleColor;
+      ..color = cropHandleColor ?? _kCropHandleColor;
+
+    final length = cropHandleLength ?? _kCropHandleLength;
 
     final path = Path()
       ..moveTo(boundaries.left - _kCropHandleHalfSize, boundaries.top)
-      ..lineTo(boundaries.left + _kCropHandleLength, boundaries.top)
+      ..lineTo(boundaries.left + length, boundaries.top)
       ..moveTo(boundaries.left, boundaries.top)
-      ..lineTo(boundaries.left, boundaries.top + _kCropHandleLength)
+      ..lineTo(boundaries.left, boundaries.top + length)
       ..moveTo(boundaries.right + _kCropHandleHalfSize, boundaries.top)
-      ..lineTo(boundaries.right - _kCropHandleLength, boundaries.top)
+      ..lineTo(boundaries.right - length, boundaries.top)
       ..moveTo(boundaries.right, boundaries.top)
-      ..lineTo(boundaries.right, boundaries.top + _kCropHandleLength)
+      ..lineTo(boundaries.right, boundaries.top + length)
       ..moveTo(boundaries.right + _kCropHandleHalfSize, boundaries.bottom)
-      ..lineTo(boundaries.right - _kCropHandleLength, boundaries.bottom)
+      ..lineTo(boundaries.right - length, boundaries.bottom)
       ..moveTo(boundaries.right, boundaries.bottom)
-      ..lineTo(boundaries.right, boundaries.bottom - _kCropHandleLength)
+      ..lineTo(boundaries.right, boundaries.bottom - length)
       ..moveTo(boundaries.left - _kCropHandleHalfSize, boundaries.bottom)
-      ..lineTo(boundaries.left + _kCropHandleLength, boundaries.bottom)
+      ..lineTo(boundaries.left + length, boundaries.bottom)
       ..moveTo(boundaries.left, boundaries.bottom)
-      ..lineTo(boundaries.left, boundaries.bottom - _kCropHandleLength);
+      ..lineTo(boundaries.left, boundaries.bottom - length);
 
     canvas.drawPath(path, paint);
   }
@@ -688,15 +707,14 @@ class _CropPainter extends CustomPainter {
     if (active != 0.0) return;
 
     final paint = Paint()
-      ..isAntiAlias = false
-      ..color = const Color(0x38000000)
-      ..style = PaintingStyle.fill
-      ..blendMode = BlendMode.darken;
+      ..isAntiAlias = true
+      ..color = const Color(0x88000000);
 
     canvas.drawRect(Rect.fromLTRB(0.0, 0.0, rect.width, rect.height), paint);
 
     paint
       ..color = const Color(0xffffffff)
+      ..style = PaintingStyle.fill
       ..blendMode = BlendMode.overlay;
     canvas.drawCircle(
       boundaries.center,
