@@ -26,6 +26,7 @@ class Crop extends StatefulWidget {
   final bool alwaysShowGrid;
   final ImageErrorListener onImageError;
 
+  @Deprecated("Not used, it will be removed in the next major release")
   final String hintText;
   final Color cropHandleColor;
   final double cropHandleLength;
@@ -33,7 +34,8 @@ class Crop extends StatefulWidget {
   const Crop({
     Key key,
     this.image,
-    this.hintText,
+    @Deprecated("No effect, it will be removed in the next major release")
+        this.hintText,
     this.aspectRatio,
     this.cropHandleColor,
     this.cropHandleLength,
@@ -49,7 +51,8 @@ class Crop extends StatefulWidget {
     File file, {
     Key key,
     double scale = 1.0,
-    this.hintText,
+    @Deprecated("No effect, it will be removed in the next major release")
+        this.hintText,
     this.aspectRatio,
     this.cropHandleColor,
     this.cropHandleLength,
@@ -66,7 +69,8 @@ class Crop extends StatefulWidget {
     Key key,
     AssetBundle bundle,
     String package,
-    this.hintText,
+    @Deprecated("No effect, it will be removed in the next major release")
+        this.hintText,
     this.aspectRatio,
     this.cropHandleColor,
     this.cropHandleLength,
@@ -726,8 +730,7 @@ class _CropPainter extends CustomPainter {
   void _drawText(Canvas canvas, Rect boundaries, Size size) {
     if (active != 0.0) return;
     final span = TextSpan(
-      text:
-          '${hintText ?? 'Daily update, Journey'}\nW:${boundaries.width.floor()} X H:${boundaries.height.floor()}',
+      text: 'W:${boundaries.width.floor()} X H:${boundaries.height.floor()}',
       style: TextStyle(
         color: const Color(0xffffffff),
         fontSize: 16,

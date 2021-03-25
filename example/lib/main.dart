@@ -61,6 +61,7 @@ class _MyAppState extends State<MyApp> {
           child: Crop.file(
             _sample,
             key: cropKey,
+            hintText: 'no effect',
             alwaysShowGrid: true,
           ),
         ),
