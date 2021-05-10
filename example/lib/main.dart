@@ -63,6 +63,7 @@ class _MyAppState extends State<MyApp> {
             key: cropKey,
             hintText: 'no effect',
             alwaysShowGrid: true,
+            shape: BoxShape.rectangle,
           ),
         ),
         Container(

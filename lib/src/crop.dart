@@ -31,6 +31,8 @@ class Crop extends StatefulWidget {
   final Color cropHandleColor;
   final double cropHandleLength;
 
+  final BoxShape shape;
+
   const Crop({
     Key key,
     this.image,
@@ -40,6 +42,7 @@ class Crop extends StatefulWidget {
     this.cropHandleColor,
     this.cropHandleLength,
     this.maximumScale = 2.0,
+    this.shape = BoxShape.circle,
     @deprecated this.alwaysShowGrid = false,
     this.onImageError,
   })  : assert(image != null),
@@ -57,6 +60,7 @@ class Crop extends StatefulWidget {
     this.cropHandleColor,
     this.cropHandleLength,
     this.maximumScale = 2.0,
+    this.shape = BoxShape.circle,
     @deprecated this.alwaysShowGrid = false,
     this.onImageError,
   })  : image = FileImage(file, scale: scale),
@@ -75,6 +79,7 @@ class Crop extends StatefulWidget {
     this.cropHandleColor,
     this.cropHandleLength,
     this.maximumScale = 2.0,
+    this.shape = BoxShape.circle,
     @deprecated this.alwaysShowGrid = false,
     this.onImageError,
   })  : image = AssetImage(assetName, bundle: bundle, package: package),
@@ -217,6 +222,7 @@ class CropState extends State<Crop> with TickerProviderStateMixin, Drag {
               scale: _scale,
               active: _activeController.value,
               hintText: widget.hintText,
+              shape: widget.shape,
               cropHandleColor: widget.cropHandleColor,
               cropHandleLength: widget.cropHandleLength,
             ),
@@ -591,6 +597,7 @@ class _CropPainter extends CustomPainter {
   final String hintText;
   final Color cropHandleColor;
   final double cropHandleLength;
+  final BoxShape shape;
 
   _CropPainter({
     this.image,
@@ -600,6 +607,7 @@ class _CropPainter extends CustomPainter {
     this.scale,
     this.active,
     this.hintText,
+    this.shape,
     this.cropHandleColor,
     this.cropHandleLength,
   });
@@ -658,7 +666,7 @@ class _CropPainter extends CustomPainter {
     if (!boundaries.isEmpty) {
       _drawMask(canvas, boundaries);
       _drawGrid(canvas, boundaries);
-      _drawCircle(canvas, boundaries, rect);
+      _drawShape(canvas, boundaries, rect);
       _drawHandles(canvas, boundaries);
       _drawText(canvas, boundaries, size);
     }
@@ -707,7 +715,7 @@ class _CropPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
-  void _drawCircle(Canvas canvas, Rect boundaries, Rect rect) {
+  void _drawShape(Canvas canvas, Rect boundaries, Rect rect) {
     if (active != 0.0) return;
 
     final paint = Paint()
@@ -720,11 +728,22 @@ class _CropPainter extends CustomPainter {
       ..color = const Color(0xffffffff)
       ..style = PaintingStyle.fill
       ..blendMode = BlendMode.overlay;
-    canvas.drawCircle(
-      boundaries.center,
-      min(boundaries.width, boundaries.height) / 2.5,
-      paint,
-    );
+
+    switch (shape) {
+      case BoxShape.rectangle:
+        canvas.drawRect(
+          boundaries,
+          paint,
+        );
+        break;
+      case BoxShape.circle:
+        canvas.drawCircle(
+          boundaries.center,
+          min(boundaries.width, boundaries.height) / 2.5,
+          paint,
+        );
+        break;
+    }
   }
 
   void _drawText(Canvas canvas, Rect boundaries, Size size) {
