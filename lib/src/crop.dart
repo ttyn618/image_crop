@@ -666,7 +666,7 @@ class _CropPainter extends CustomPainter {
     if (!boundaries.isEmpty) {
       _drawMask(canvas, boundaries);
       _drawGrid(canvas, boundaries);
-      _drawShape(canvas, boundaries, rect);
+      _drawShape(canvas, area, rect);
       _drawHandles(canvas, boundaries);
       _drawText(canvas, boundaries, size);
     }
