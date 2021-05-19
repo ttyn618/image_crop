@@ -666,7 +666,7 @@ class _CropPainter extends CustomPainter {
     if (!boundaries.isEmpty) {
       _drawMask(canvas, boundaries);
       _drawGrid(canvas, boundaries);
-      _drawShape(canvas, area, rect);
+      _drawShape(canvas, boundaries, rect);
       _drawHandles(canvas, boundaries);
       _drawText(canvas, boundaries, size);
     }
@@ -739,7 +739,7 @@ class _CropPainter extends CustomPainter {
       case BoxShape.circle:
         canvas.drawCircle(
           boundaries.center,
-          min(boundaries.width, boundaries.height) / 2.5,
+          boundaries.shortestSide / 2.0,
           paint,
         );
         break;
